@@ -1,0 +1,39 @@
+1:login
+2:register
+3:send_msg
+4:send_pic
+
+
+req = {
+    "op": 1,
+    "args": {
+        "account": account,
+        "password": password
+    }
+}
+
+req = {
+    "op": 2,
+    "args": {
+        "account": account,
+        "password": password
+    }
+}
+
+req = {
+    "op": 3,
+    "args": {
+        "sender": sender_account,
+        "recevier": recevier_nickname,
+        "msg": msg_content
+    }
+}
+
+req = {
+    "op": 4,
+    "args": {
+        "sender": sender_account,
+        "recevier": recevier_nickname,
+        "msg": msg_content
+    }
+}
