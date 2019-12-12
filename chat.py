@@ -14,6 +14,8 @@ class chatroom_mainWindow(QtWidgets.QMainWindow):
     def __init__(self):
         self.logs = {}
         self.client_socket = None
+        self.user_list = []
+        self.user_info = tuple()
         super(chatroom_mainWindow,self).__init__()
         self.setupUi(self)
         self.retranslateUi(self)
@@ -50,18 +52,20 @@ class chatroom_mainWindow(QtWidgets.QMainWindow):
         self.list = QListWidget(self.centralWidget)
         self.list.setGeometry(5, 100, 220, 600)
         self.list.setVerticalScrollBarPolicy(2)
-        self.list.addItem("Jack")
-        self.list.addItem("Lily")
-        self.list.addItem("Lucy")
-        self.list.addItem("Rob")
+        for user in self.user_list:
+            self.list.addItem(user)
+        # self.list.addItem("Jack")
+        # self.list.addItem("Lily")
+        # self.list.addItem("Lucy")
+        # self.list.addItem("Rob")
         self.list.currentRowChanged.connect(self.switchlog)
         
         self.pushButton = QPushButton(self.centralWidget)
-        self.pushButton.setGeometry(880, 710, 80, 30)
+        self.pushButton.setGeometry(880, 680, 80, 30)
         self.pushButton.clicked.connect(self.send_msg)
 
         self.textEdit = QTextEdit(self.centralWidget)
-        self.textEdit.setGeometry(230, 580, 730, 120)
+        self.textEdit.setGeometry(230, 560, 730, 120)
         
         self.stackedwidget = QStackedWidget(self.centralWidget)
         self.stackedwidget.setGeometry(QtCore.QRect(230, 35, 730, 500))
@@ -87,7 +91,7 @@ class chatroom_mainWindow(QtWidgets.QMainWindow):
 
     def retranslateUi(self, mainWindow):
         _translate = QtCore.QCoreApplication.translate
-        mainWindow.setWindowTitle(_translate("mainWindow", "hello word"))
+        mainWindow.setWindowTitle(_translate("mainWindow", "hello world"))
         # self.log.setText(_translate("MainWindow", "聊天记录"))
         self.label.setText(_translate("MainWindow", "好友列表"))
         self.label_1.setText(_translate("MainWindow", "好友昵称"))
@@ -131,18 +135,6 @@ class chatroom_mainWindow(QtWidgets.QMainWindow):
                 log.insertPlainText('\n\t'+content)
             else:
                 pass
-    
-    def send_hearbeat(self):
-        req = {
-            'op': 5,
-            'args': {
-                'account': 'Jack',
-                'check_alive': True
-            }
-        }
-        if not send_func(self.client_socket, req):
-            QMessageBox.information(self, "error", "与服务器失去连接")
-        time.sleep(10)
 
     def switchlog(self, i):
         self.stackedwidget.setCurrentIndex(i)
@@ -157,8 +149,7 @@ class chatroom_mainWindow(QtWidgets.QMainWindow):
         init_thread = threading.Thread(target=self.init_info)
         init_thread.start()
 
-        heartbeat = threading.Thread(target=self.send_hearbeat)
-        heartbeat.start()
+
 
 if __name__ == "__main__":
     import sys
