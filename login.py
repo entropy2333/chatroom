@@ -1,4 +1,5 @@
 import json
+import time
 import socket
 # import hashlib
 from chat import *
@@ -29,10 +30,10 @@ class Ui_MainWindow(QtWidgets.QMainWindow):
         self.centralWidget = QtWidgets.QWidget(MainWindow)
         self.centralWidget.setObjectName('centralWidget')
         # self.centralWidget.setStyleSheet('background:url(bg.jpg)')
-        self.setAutoFillBackground(True)
-        window_pale = QtGui.QPalette() 
-        window_pale.setBrush(self.backgroundRole(),  QtGui.QBrush(QtGui.QPixmap("bg.jpg"))) 
-        self.setPalette(window_pale)
+        # self.setAutoFillBackground(True)
+        # window_pale = QtGui.QPalette() 
+        # window_pale.setBrush(self.backgroundRole(),  QtGui.QBrush(QtGui.QPixmap("bg.jpg"))) 
+        # self.setPalette(window_pale)
 
         self.lineEdit = QtWidgets.QLineEdit(self.centralWidget)
         self.lineEdit.setGeometry(QtCore.QRect(160, 210, 240, 40))
@@ -85,7 +86,7 @@ class Ui_MainWindow(QtWidgets.QMainWindow):
         # self.label_2.setText(_translate('MainWindow', '密码'))
         self.pushButton.setText(_translate('MainWindow', '登  录'))
         self.pushButton_2.setText(_translate('MainWindow', '注册'))
-
+    
     def login(self):
         '''
         登陆
@@ -102,7 +103,8 @@ class Ui_MainWindow(QtWidgets.QMainWindow):
             'op': 'login',
             'args': {
                 'account': account,
-                'passwd': passwd
+                'passwd': passwd,
+                'time': time_func()
             }
         }
         

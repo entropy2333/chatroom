@@ -192,9 +192,10 @@ class Server():
                 if recv_content['op'] == 'login':
                     account = recv_content['args']['account']
                     passwd = recv_content['args']['passwd']
+                    time = recv_content['args']['time']
                     user_info = self.get_user_info(account)
                     if user_info and passwd == user_info[1] and user_info not in self.__client_sockets:
-                        print('New Connection from: {}'.format(client_socket.getpeername()))
+                        print('{} New Connection from: {}'.format(time, client_socket.getpeername()))
                         user_list = []
                         for user in self.get_user_info():
                             user_list.append(user[2])
@@ -203,7 +204,8 @@ class Server():
                             'args': {
                                 'check_flag':  True,
                                 'user_info': user_info,
-                                'user_list': user_list
+                                'user_list': user_list,
+                                'time': time_func()
                             }
                         }
                         # 动态维护在线用户
@@ -219,17 +221,19 @@ class Server():
                         resp = {
                             'op': 'refresh',
                             'args': {
-                                'users_online': users_online
+                                'users_online': users_online,
+                                'time': time_func()
                             }
                         }
                         self.msg_to_queue(resp, client_socket)
                     else:
-                        print('Failed Connection from: {}'.format(client_socket.getpeername()))
+                        print('{} Failed Connection from: {}'.format(time, client_socket.getpeername()))
                         resp = {
                                 'op': 'login',
                                 'args': {
                                     'check_flag': False,
-                                    'error_info': ''
+                                    'error_info': '',
+                                    'time': time_func()
                                 }
                             }
                         if not user_info:
@@ -248,21 +252,23 @@ class Server():
                     passwd = recv_content['args']['passwd']
                     nickname = recv_content['args']['nickname']
                     if self.add_user(account, passwd, nickname):
-                        print('Add new user successfully! account: %s nickname: %s' %(account, nickname))
+                        print('{} Add new user successfully! account: {} nickname: {}'.format(time, account, nickname))
                         resp = {
                             'op': 'register',
                             'args': {
-                                'check_flag':  True
+                                'check_flag':  True,
+                                'time': time_func()
                             }
                         }
                         send_func(client_socket, resp)
                     else:
-                        print('Fail to add new user：user already exists')
+                        print('{} Fail to add new user：user already exists'.format(time))
                         resp = {
                             'op': 'register',
                             'args': {
                                 'check_flag':  False,
-                                'error_info': 'user already exists'
+                                'error_info': 'user already exists',
+                                'time': time_func()
                             }
                         }
                         send_func(client_socket, resp)
@@ -279,11 +285,12 @@ class Server():
                             'args': {
                                 'src_nickname': src_info[2],
                                 'dst_nickname': dst_info[2],
-                                'content': content
+                                'content': content,
+                                'time': time_func()
                             }
                         }
                     send_func(self.__client_sockets[dst_info], resp)
-                    print('sender: %s, receiver: %s, content: %s' %(src_info[2], dst_info[2], content))
+                    print('{} sender: {}, receiver: {}, content: {}'.format(time, src_info[2], dst_info[2], content))
                 
                 # 客户端发起私聊请求
                 elif recv_content['op'] == 'send_img':
@@ -294,24 +301,26 @@ class Server():
                     # src = self.get_user_account(src_nickname)
                     dst_info = self.get_user_account(dst_nickname)
                     resp = {
-                            'op': 'send_msg',
+                            'op': 'send_img',
                             'args': {
                                 'src_nickname': src_info[2],
                                 'dst_nickname': dst_info[2],
                                 'img_name': img_name,
-                                'img_str': img_str
+                                'img_str': img_str,
+                                'time': time_func()
                             }
                         }
                     send_func(self.__client_sockets[dst_info], resp)
-                    print('sender: %s, receiver: %s, img: %s' %(src_info[2], dst_info[2], img_name))
-                
+                    print('{} sender: {}, receiver: {}, img: {}'.format(time, src_info[2], dst_info[2], content))
+
                 # 新用户加入，刷新在线用户
                 elif recv_content['op'] == 'refresh':
                     for client_socket in list(self.__client_sockets.values()):
                         resp = {
                             'op': 'new_user',
                             'args': {
-                                'users_online': recv_content['args']['users_online']
+                                'users_online': recv_content['args']['users_online'],
+                                'time': time_func()
                             }
                         }
                         send_func(client_socket, resp)

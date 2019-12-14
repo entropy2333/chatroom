@@ -1,3 +1,4 @@
+import time
 import json
 import socket
 
@@ -43,3 +44,12 @@ def send_func(client_socket, req):
     len_req = str(len(req)).ljust(15).encode()
     client_socket.send(len_req)
     client_socket.send(req)
+
+def time_func():
+    '''
+    返回当前时间
+    
+    Returns:
+        str -- 当前时间
+    '''
+    return time.strftime('%Y-%m-%d %H:%M:%S', time.localtime())

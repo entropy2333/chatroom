@@ -1,3 +1,4 @@
+import os
 import json
 import time
 import base64
@@ -44,7 +45,7 @@ class chatroom_mainWindow(QtWidgets.QMainWindow):
         self.label_1.setObjectName("label_1")
 
         self.label_2 = QLabel(self.centralWidget)
-        self.label_2.setGeometry(QtCore.QRect(0, 0, 220, 70))
+        self.label_2.setGeometry(QtCore.QRect(80, 0, 220, 70))
         self.label_2.setTextFormat(QtCore.Qt.AutoText)
         self.label_2.setObjectName("label_2")
 
@@ -70,7 +71,7 @@ class chatroom_mainWindow(QtWidgets.QMainWindow):
 
         self.list.currentRowChanged.connect(self.switchlog)
         self.list.setStyleSheet('font-size:28px;font-family:微软雅黑;border-width:0px;border-style:solid')
-        
+
         self.pushButton = QPushButton(self.centralWidget)
         self.pushButton.setGeometry(860, 670, 80, 30)
         self.pushButton.clicked.connect(self.send_msg)
@@ -98,7 +99,12 @@ class chatroom_mainWindow(QtWidgets.QMainWindow):
             self.stackedwidget.addWidget(log)
             log.setStyleSheet('font-size:16px;font-family:微软雅黑;border-width:0px;border-style:solid')
 
+        mainWindow.setCentralWidget(self.centralWidget)
+        self.retranslateUi(mainWindow)
+        QtCore.QMetaObject.connectSlotsByName(mainWindow)
+
         # self.stackedwidget.setCurrentIndex(1)
+
     def retranslateUi(self, mainWindow):
         _translate = QtCore.QCoreApplication.translate
         mainWindow.setWindowTitle(_translate("mainWindow", "hello world"))
@@ -113,46 +119,71 @@ class chatroom_mainWindow(QtWidgets.QMainWindow):
         index = self.stackedwidget.currentIndex()
         dst_nickname = self.list.item(index).text()
         content = self.textEdit.toPlainText()
+        time = time_func()
         if not content:
             QMessageBox.information(self, "error", "发送内容不能为空，请重新输入")
         else:
-            req = {
-                "op": 'send_msg',
-                "args": {
-                    "src_info": self.user_info,
-                    "dst_nickname": dst_nickname,
-                    "content": content
-                }
-            }
-            send_func(self.client_socket, req)
             self.textEdit.setPlainText('')
             log = self.stackedwidget.currentWidget()
             # 将鼠标指针移至末尾
             cursor = log.textCursor()
             cursor.movePosition(QtGui.QTextCursor.End)
             log.setTextCursor(cursor)
-            log.insertPlainText('\n'+self.user_info[2]+':')
-            log.insertPlainText('\n\t'+content)
+            log.insertPlainText('\n' + self.user_info[2] + '  ' + time + ':')
+            log.insertPlainText('\n\t' + content)
+            if dst_nickname == self.user_info[2]:
+                return 
+            req = {
+                "op": 'send_msg',
+                "args": {
+                    "src_info": self.user_info,
+                    "dst_nickname": dst_nickname,
+                    "content": content,
+                    'time': time
+                }
+            }
+            send_func(self.client_socket, req)
             # else:
             #     QMessageBox.information(self, "error", "发送失败")
+
+    def scaled_img(self, img_path):
+        img = QImageReader(img_path).read()
+        image = QTextImageFormat()
+        image.setName(img_path)
+        width = img.width()
+        height = img.height()
+        ratio = width / height
+        scale = max(750/width, 430/height)
+        if scale < 1:
+            width, height = width * 0.4 * scale, height * 0.4 * scale
+        if scale > 5:
+            width, height = width * 2, height * 2
+        image.setWidth(width)
+        image.setHeight(height)
+        return image
 
     def send_img(self):
         index = self.stackedwidget.currentIndex()
         dst_nickname = self.list.item(index).text()
-        img_name = QFileDialog().getOpenFileName(self, 'Open File', './') # type: tuple
-        img_name = img_name[0] # type: str
-
-        img = QTextImageFormat()
-        img.setName(img_name)
+        img_path = QFileDialog().getOpenFileName(self, 'Open File', './') # type: tuple
+        img_path = img_path[0] # type: str
+        if not img_path:
+            return 
+        img_name = img_path.split('/')[-1] # type: str
+        time = time_func()
+        img = self.scaled_img(img_path)
+        # img = QTextImageFormat()
+        # img.setName(img_path)
         log = self.stackedwidget.currentWidget()
         # 将鼠标指针移至末尾
         cursor = log.textCursor()
         cursor.movePosition(QtGui.QTextCursor.End)
         log.setTextCursor(cursor)
-        log.insertPlainText('\n'+self.user_info[2]+':'+'\n\t')
+        log.insertPlainText('\n' + self.user_info[2] + '  ' + time + ':' + '\n  ')
         cursor.insertImage(img)
-        
-        with open (img_name, 'rb') as f:
+        if dst_nickname == self.user_info[2]:
+            return
+        with open (img_path, 'rb') as f:
             content = f.read() # type: bytes
             img_str = base64.encodebytes(content).decode('utf-8')
         req = {
@@ -161,7 +192,8 @@ class chatroom_mainWindow(QtWidgets.QMainWindow):
                 "src_info": self.user_info,
                 "dst_nickname": dst_nickname,
                 'img_name': img_name,
-                'img_str': img_str
+                'img_str': img_str,
+                'time': time
             }
         }
         send_func(self.client_socket, req)
@@ -177,9 +209,6 @@ class chatroom_mainWindow(QtWidgets.QMainWindow):
         #     else:
         #         self.list.item(user.index()).setBackround(QColor('green'))
 
-    def get_user_item(self):
-        pass
-
     def recv_msg(self):
         while True:
             try:
@@ -187,44 +216,51 @@ class chatroom_mainWindow(QtWidgets.QMainWindow):
                 if recv_content['op'] == 'send_msg':
                     src_nickname = recv_content['args']['src_nickname']
                     dst_nickname = recv_content['args']['dst_nickname']
+                    time = recv_content['args']['time']
                     if src_nickname == dst_nickname:
                         pass
                     content = recv_content['args']['content']
                     index = self.user_list.index(src_nickname)
                     self.switchlog(index)
-                    self.list.setCurrentIndex(index)
+                    # self.list.setCurrentIndex(index)
                     log = self.stackedwidget.currentWidget()
                     # 将鼠标指针移至末尾
                     cursor = log.textCursor()
                     cursor.movePosition(QtGui.QTextCursor.End)
                     log.setTextCursor(cursor)
-                    log.insertPlainText('\n'+src_nickname+':')
-                    log.insertPlainText('\n\t'+content)
+                    log.insertPlainText('\n' + src_nickname + '  ' + time +':')
+                    log.insertPlainText('\n  ' + content)
+
                 elif recv_content['op'] == 'send_img':
                     src_nickname = recv_content['args']['src_nickname']
                     dst_nickname = recv_content['args']['dst_nickname']
+                    tiem = recv_content['args']['time']
                     if src_nickname == dst_nickname:
                         pass
                     img_name = recv_content['args']['img_name']
                     img_str = recv_content['args']['img_str']
                     img_data = base64.b64decode(img_str)
-                    with open ('./image_cache/'+img_name, 'wb+') as f:
+                    img_path = os.path.join(os.path.dirname(__file__), 'image_cache', img_name)
+                    with open (img_path, 'wb+') as f:
                         f.write(img_data)
-                    
-                    img = QTextImageFormat()
-                    img.setName(img_name)
+
+                    img = self.scaled_img(img_path)
+                    # img = QTextImageFormat()
+                    # img.setName(img_path)
                     index = self.user_list.index(src_nickname)
                     self.switchlog(index)
-                    self.list.setCurrentIndex(index)
+                    # self.list.setCurrentIndex(index)
                     # 将鼠标指针移至末尾
+                    log = self.stackedwidget.currentWidget()
                     cursor = log.textCursor()
                     cursor.movePosition(QtGui.QTextCursor.End)
                     log.setTextCursor(cursor)
-                    log.insertPlainText('\n'+src_nickname+':'+'\n')
-                    cursor.insertImage(img_data)
+                    log.insertPlainText('\n' + src_nickname + '  ' + time + ':' + '\n')
+                    cursor.insertImage(img)
 
                 elif recv_content['op'] == 'new_user':
                     self.users_online = recv_content['args']['users_online']
+                    time = recv_content['args']['time']
                     self.refresh_user()
                 else:
                     pass
