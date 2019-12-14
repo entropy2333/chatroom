@@ -19,7 +19,7 @@ def recv_func(client_socket):
         recv_content = b''
         
         while recv_size < data_size:
-            recv_data = client_socket.recv(data_size - recv_size)
+            recv_data = client_socket.recv(1024)
             if not recv_data:
                 break
             recv_size += len(recv_data)

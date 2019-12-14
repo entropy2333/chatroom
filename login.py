@@ -83,13 +83,17 @@ class Ui_MainWindow(QtWidgets.QMainWindow):
         # md5 = hashlib.md5()
         # md5.update(password.encode())
         # password = md5.hexdigest()
+        if not account or not passwd:
+            QMessageBox.information(self, "info", "account or password cannot be empty!")
+            return 
         req = {
-            'op': 1,
+            'op': 'login',
             'args': {
                 'account': account,
                 'passwd': passwd
             }
         }
+        
         try:
             self.client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             IP_PORT = ('127.0.0.1', 8888)
@@ -97,21 +101,24 @@ class Ui_MainWindow(QtWidgets.QMainWindow):
             # self.client_socket.settimeout(0.2)
             send_func(self.client_socket, req)
             recv_content = recv_func(self.client_socket)
-            if recv_content['op'] == 1:
+            if recv_content['op'] == 'login':
                 if recv_content['args']['check_flag']:
                     # login success
-                    ui_chatroom.user_info = recv_content['args']['user_info']
-                    ui_chatroom.user_list = recv_content['args']['user_list']
-                    ui_chatroom.client_socket = ui.client_socket
+                    user_info = recv_content['args']['user_info']
+                    user_list = recv_content['args']['user_list']
+                    client_socket = ui.client_socket
+                    users_online = [user_info[2]]
+                    ui_chatroom = chatroom_mainWindow(client_socket, user_list, user_info, users_online)
                     ui_chatroom.show()
-                    ui_chatroom.run()
                     MainWindow.close()
-            else:
-                # login error
-                self.client_socket.close()
-                QMessageBox.information(self, 'info', '登陆出错')
+                    ui_chatroom.run()
+                else:
+                    # login error
+                    error_info = recv_content['args']['error_info']
+                    self.client_socket.close()
+                    QMessageBox.information(self, 'info', error_info)
         except Exception as e:
-            QMessageBox.information(self, 'info', '登陆出错')
+            QMessageBox.information(self, 'info', 'Failed to connect server!')
             self.client_socket.close()
             # self.lineEdit.setFocus()
     
@@ -129,7 +136,7 @@ if __name__ == '__main__':
     app = QtWidgets.QApplication(sys.argv)
     MainWindow = QtWidgets.QMainWindow()
     ui = Ui_MainWindow()
-    ui_chatroom = chatroom_mainWindow()
+    # ui_chatroom = chatroom_mainWindow()
     ui_register = register_MainWindow()
     ui.setupUi(MainWindow)
     MainWindow.show()

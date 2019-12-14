@@ -89,7 +89,7 @@ class register_MainWindow(QtWidgets.QMainWindow):
         # md5.update(password.encode())
         # password = md5.hexdigest()
         req = {
-            "op": 2,
+            "op": 'register',
             "args": {
                 "account": account,
                 "password": passwd
@@ -102,7 +102,7 @@ class register_MainWindow(QtWidgets.QMainWindow):
         send_func(client_socket, req)
         recv_content = recv_func(client_socket)
         
-        if recv_content['op'] == 2:
+        if recv_content['op'] == 'register':
             if recv_content['args']['check_flag']:
                 QMessageBox.information(self, "info", "注册成功")
             else:

@@ -26,11 +26,9 @@ class Server():
              
     def init_db(self):
         '''
-        初始化数据库
+        初始化数据库\n
+        数据库文件为test.db，若不存在会在当前目录创建
         '''
-        # 连接到SQLite数据库
-        # 数据库文件是test.db
-        # 如果文件不存在，会自动在当前目录创建:
         if os.path.isfile(self.__db_file):
             os.remove(self.__db_file)    
         conn = sqlite3.connect(self.__db_file)
@@ -43,7 +41,7 @@ class Server():
         conn.commit()
         conn.close()        
         
-        print('Database initialization completed！')
+        print('Database initialization completed!')
 
     def add_user(self, account, passwd, nickname):
         '''
@@ -58,7 +56,6 @@ class Server():
             bool -- 添加成功为True，用户已存在为False
         '''
         if self.user_in_table(account):
-            print('用户添加失败：用户已存在')
             return False
         else:
             conn = sqlite3.connect(self.__db_file)
@@ -68,7 +65,6 @@ class Server():
             cur.close()
             conn.commit()
             conn.close()
-            print('用户添加成功')
             return True
 
     def user_in_table(self, account):
@@ -92,20 +88,24 @@ class Server():
         else:
             return False
 
-    def get_user_info(self, account):
+    def get_user_info(self, account=None):
         '''
-        根据昵称返回用户信息
+        根据账号返回用户信息，account为空时返回所有用户
         
         Arguments:
-            nickname {str} -- 用户昵称
+            account {str} -- 账号
         
         Returns:
-            str -- 用户账号
+            tuple/list  -- 用户信息
         '''
         conn = sqlite3.connect(self.__db_file)
         cur = conn.cursor()
-        cur.execute('select * from user where account=?', (account, ))
-        rows = cur.fetchone()
+        if not account:
+            cur.execute('select * from user')
+            rows = cur.fetchall()
+        else:
+            cur.execute('select * from user where account=?', (account, ))
+            rows = cur.fetchone()
         cur.close()
         conn.commit()
         if rows:
@@ -158,114 +158,167 @@ class Server():
         else:
             return False
     
-    def recv_msg_thread(self, client_socket):
+    def msg_to_queue(self, recv_content, client_socket):
         '''
-        服务器监听消息的线程
+        将服务器接收的消息存到队列中
         
         Arguments:
-            client_socket {socket} -- 用户套接字
+            recv_content {str} -- 接收的内容
+            client_socket {socket} -- 客户端套接字
         '''
-        try:
-            while True:
-                recv_content = recv_func(client_socket)
-                self.msg_to_queue(recv_content, client_socket)
-            client_socket.close()
-        except:
-            print('Connnetion with %s lost!' %client_socket)
-            client_socket.close()
-    
-    def msg_to_queue(self, recv_content, client_socket):
         self.__lock.acquire()
         try:
             self.__msg_queue.put((recv_content, client_socket))
         finally:
             self.__lock.release()
-    
+
+    def users_online(self):
+        '''
+        返回所有在线的用户
+        
+        Returns:
+            list -- list of tuples: [(account, passwd, nickname, status),]
+        '''
+        return list(self.__client_sockets.keys())
+
     def send_msg(self):
+        '''
+        从队列中获取消息并发送
+        '''
         while True:
             if not self.__msg_queue.empty():
                 recv_content, client_socket = self.__msg_queue.get()
-
                 # 客户端发起登陆请求
-                if recv_content['op'] == 1:
-                    user_info = self.get_user_info(account) # type: tuple
-                    user_list = self.users_online() # type: list
-                    resp = {
-                        'op': 1,
-                        'args': {
-                            'check_flag':  True,
-                            'user_info': user_info,
-                            'user_list': user_list
-                        }
-                    }
-                    # 动态维护
-                    print('New Connection from: %s' %str(client_addr))
-                    # 尚未考虑同一用户登陆
-                    self.__client_sockets[account] = client_socket
-                    send_func(client_socket, resp)
-                    # 登陆成功 为用户新开一个线程
-                    recv_thread = threading.Thread(target=self.recv_msg_thread,args=(client_socket,))
-                    recv_thread.start()
-                    else:
+                if recv_content['op'] == 'login':
+                    account = recv_content['args']['account']
+                    passwd = recv_content['args']['passwd']
+                    user_info = self.get_user_info(account)
+                    if user_info and passwd == user_info[1] and user_info not in self.__client_sockets:
+                        print('New Connection from: {}'.format(client_socket.getpeername()))
+                        user_list = []
+                        for user in self.get_user_info():
+                            user_list.append(user[2])
                         resp = {
-                                'op': 1,
+                            'op': 'login',
+                            'args': {
+                                'check_flag':  True,
+                                'user_info': user_info,
+                                'user_list': user_list
+                            }
+                        }
+                        # 动态维护在线用户
+                        self.__client_sockets[user_info] = client_socket
+                        send_func(client_socket, resp)
+                        # 为新用户开一个线程监听消息  
+                        recv_thread = threading.Thread(target=self.recv_msg_thread,args=(client_socket,))
+                        recv_thread.start()
+                        users_online = []
+                        for user in self.users_online():
+                            users_online.append(user[2])
+                        # 新用户登陆成功 则通知所有在线用户
+                        resp = {
+                            'op': 'refresh',
+                            'args': {
+                                'users_online': users_online
+                            }
+                        }
+                        self.msg_to_queue(resp, client_socket)
+                    else:
+                        print('Failed Connection from: {}'.format(client_socket.getpeername()))
+                        resp = {
+                                'op': 'login',
                                 'args': {
-                                    'check_flag': False
+                                    'check_flag': False,
+                                    'error_info': ''
                                 }
                             }
-                        print('Failed Connection from: %s' %str(client_addr))
+                        if not user_info:
+                            resp['args']['error_info'] = 'user not exists'
+                        elif not passwd == user_info[1]:
+                            resp['args']['error_info'] = "account and password don't match"
+                        elif user_info in self.__client_sockets:
+                            resp['args']['error_info'] = "user already logins"
+                        else:
+                            resp['args']['error_info'] = "unexpected error happens"
                         send_func(client_socket, resp)
 
                 # 客户端发起注册请求
-                elif recv_content['op'] == 2:
+                elif recv_content['op'] == 'register':
                     account = recv_content['args']['account']
                     passwd = recv_content['args']['passwd']
                     nickname = recv_content['args']['nickname']
                     if self.add_user(account, passwd, nickname):
-                        print('Add new user success! account: %s nickname: %s' %(account, nickname))
+                        print('Add new user successfully! account: %s nickname: %s' %(account, nickname))
                         resp = {
-                            'op': 2,
+                            'op': 'register',
                             'args': {
                                 'check_flag':  True
                             }
                         }
                         send_func(client_socket, resp)
                     else:
-                        print('Add new user failed!')
+                        print('Fail to add new user：user already exists')
                         resp = {
-                            'op': 2,
+                            'op': 'register',
                             'args': {
-                                'check_flag':  False
+                                'check_flag':  False,
+                                'error_info': 'user already exists'
                             }
                         }
                         send_func(client_socket, resp)
                 
                 # 客户端发起私聊请求
-                elif recv_content['op'] == 3:
-                    src_nickname = recv_content['args']['src_nickname']
+                elif recv_content['op'] == 'send_msg':
+                    src_info = recv_content['args']['src_info']
                     dst_nickname = recv_content['args']['dst_nickname']
                     content = recv_content['args']['content']
                     # src = self.get_user_account(src_nickname)
-                    dst = self.get_user_account(dst_nickname)[0]
+                    dst_info = self.get_user_account(dst_nickname)
                     resp = {
-                            'op': 3,
+                            'op': 'send_msg',
                             'args': {
-                                'src_nickname': src_nickname,
-                                'dst_nickname': dst_nickname,
+                                'src_nickname': src_info[2],
+                                'dst_nickname': dst_info[2],
                                 'content': content
                             }
                         }
-                    send_func(self.__client_sockets[dst], resp)
-                    print('sender: %s, receiver: %s, content: %s' %(src_nickname, dst_nickname, content))
-                else:
-                    pass
+                    send_func(self.__client_sockets[dst_info], resp)
+                    print('sender: %s, receiver: %s, content: %s' %(src_info[2], dst_info[2], content))
+                
+                # 客户端发起私聊请求
+                elif recv_content['op'] == 'send_img':
+                    src_info = recv_content['args']['src_info']
+                    dst_nickname = recv_content['args']['dst_nickname']
+                    img_name = recv_content['args']['img_name']
+                    img_str = recv_content['args']['img_str']
+                    # src = self.get_user_account(src_nickname)
+                    dst_info = self.get_user_account(dst_nickname)
+                    resp = {
+                            'op': 'send_msg',
+                            'args': {
+                                'src_nickname': src_info[2],
+                                'dst_nickname': dst_info[2],
+                                'img_name': img_name,
+                                'img_str': img_str
+                            }
+                        }
+                    send_func(self.__client_sockets[dst_info], resp)
+                    print('sender: %s, receiver: %s, img: %s' %(src_info[2], dst_info[2], img_name))
+                
+                # 新用户加入，刷新在线用户
+                elif recv_content['op'] == 'refresh':
+                    for client_socket in list(self.__client_sockets.values()):
+                        resp = {
+                            'op': 'new_user',
+                            'args': {
+                                'users_online': recv_content['args']['users_online']
+                            }
+                        }
+                        send_func(client_socket, resp)
     
-    def users_online(self):
-        return list(self.__client_sockets.keys())
-
     def login_thread(self):
         '''
-        用户登陆线程
+        用户登陆线程，接收新的客户端连接
         '''
 
         while True:
@@ -274,7 +327,24 @@ class Server():
             # print 'New connection from : %s' % str(addr)
             recv_content = recv_func(client_socket)
             self.msg_to_queue(recv_content, client_socket)
-            
+
+    def recv_msg_thread(self, client_socket):
+        '''
+        服务器监听消息的线程
+        
+        Arguments:
+            client_socket {socket} -- 客户端套接字
+        '''
+        try:
+            while True:
+                recv_content = recv_func(client_socket)
+                self.msg_to_queue(recv_content, client_socket)
+            client_socket.close()
+        except:
+            print('Connnetion with {} lost!'.format(client_socket.getpeername()))
+            # self.__client_sockets.pop(list(self.__client_sockets.keys())[list(self.__client_sockets.values()).index(client_socket)])
+            client_socket.close()
+    
     def run(self):
         '''
         启动线程
@@ -283,10 +353,6 @@ class Server():
         login_thread.start()
         send_thread = threading.Thread(target=self.send_msg)
         send_thread.start()
-        # send_thread = threading.Thread(target=self.send_thread)
-        # send_thread.start()
-        # thread2 = threading.Thread(target=self.send_msg_thread)
-        # thread2.start()
 
 if __name__ == '__main__':
     Server().run()
