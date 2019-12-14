@@ -21,41 +21,53 @@ class Ui_MainWindow(QtWidgets.QMainWindow):
         MainWindow.setObjectName('MainWindow')
         # MainWindow.resize(386, 127)
         # 尺寸与Background.jpg相关
-        MainWindow.setMaximumSize(386, 127)
-        MainWindow.setMinimumSize(386, 127)
+        MainWindow.setMaximumSize(540, 380)
+        MainWindow.setMinimumSize(540, 380)
         MainWindow.setWindowIcon(QIcon('logo.png'))
-        MainWindow.setStyleSheet('background-image:url(Background.jpg)')
+        MainWindow.setStyleSheet('#MainWindow{border-image:url(bg.jpg)}')
 
         self.centralWidget = QtWidgets.QWidget(MainWindow)
         self.centralWidget.setObjectName('centralWidget')
+        # self.centralWidget.setStyleSheet('background:url(bg.jpg)')
+        self.setAutoFillBackground(True)
+        window_pale = QtGui.QPalette() 
+        window_pale.setBrush(self.backgroundRole(),  QtGui.QBrush(QtGui.QPixmap("bg.jpg"))) 
+        self.setPalette(window_pale)
 
         self.lineEdit = QtWidgets.QLineEdit(self.centralWidget)
-        self.lineEdit.setGeometry(QtCore.QRect(250, 20, 100, 20))
+        self.lineEdit.setGeometry(QtCore.QRect(160, 210, 240, 40))
         self.lineEdit.setText('')
         self.lineEdit.setObjectName('lineEdit')
-
+        
         self.lineEdit_2 = QtWidgets.QLineEdit(self.centralWidget)
-        self.lineEdit_2.setGeometry(QtCore.QRect(250, 50, 100, 20))
+        self.lineEdit_2.setGeometry(QtCore.QRect(160, 250, 240, 40))
         self.lineEdit_2.setText('')
         self.lineEdit_2.setEchoMode(QtWidgets.QLineEdit.Password)
         self.lineEdit_2.setObjectName('lineEdit_2')
 
-        self.label = QtWidgets.QLabel(self.centralWidget)
-        self.label.setGeometry(QtCore.QRect(200, 20, 30, 20))
-        self.label.setTextFormat(QtCore.Qt.AutoText)
-        self.label.setObjectName('label')
+        self.lineEdit.setStyleSheet('font-size:18px;font-family:微软雅黑;'+
+                    'border-width:1px;border-style:solid;border-color:#d1d1d1;border-radius:3px;')
+        self.lineEdit_2.setStyleSheet('font-size:18px;font-family:微软雅黑;'+
+                    'border-width:1px;border-style:solid;border-color:#d1d1d1;border-radius:3px;')
 
-        self.label_2 = QtWidgets.QLabel(self.centralWidget)
-        self.label_2.setGeometry(QtCore.QRect(200, 50, 30, 20))
-        self.label_2.setObjectName('label_2')
+        # self.label = QtWidgets.QLabel(self.centralWidget)
+        # self.label.setGeometry(QtCore.QRect(120, 210, 30, 40))
+        # self.label.setTextFormat(QtCore.Qt.AutoText)
+        # self.label.setObjectName('label')
+
+        # self.label_2 = QtWidgets.QLabel(self.centralWidget)
+        # self.label_2.setGeometry(QtCore.QRect(120, 250, 30, 40))
+        # self.label_2.setObjectName('label_2')
         
         self.pushButton = QtWidgets.QPushButton(self.centralWidget)
-        self.pushButton.setGeometry(QtCore.QRect(190, 90, 75, 23))
+        self.pushButton.setGeometry(QtCore.QRect(160, 310, 240, 40))
         self.pushButton.setObjectName('pushButton')
+        self.pushButton.setStyleSheet('font-size:19px;font-family:等线;color:#ecf8ff;background:#00a3ff;border-radius:5px')
 
         self.pushButton_2 = QtWidgets.QPushButton(self.centralWidget)
-        self.pushButton_2.setGeometry(QtCore.QRect(290, 90, 75, 23))
+        self.pushButton_2.setGeometry(QtCore.QRect(420, 215, 40, 30))
         self.pushButton_2.setObjectName('pushButton_2')
+        self.pushButton_2.setStyleSheet('font-size:19px;font-family:等线;color:#00a3ff;background:#ffffff;border-radius:10px')
 
         self.pushButton.clicked.connect(self.login)
         self.pushButton_2.clicked.connect(self.register)
@@ -66,12 +78,12 @@ class Ui_MainWindow(QtWidgets.QMainWindow):
 
     def retranslateUi(self, MainWindow):
         _translate = QtCore.QCoreApplication.translate
-        MainWindow.setWindowTitle(_translate('MainWindow', '登陆程序'))
+        MainWindow.setWindowTitle(_translate('MainWindow', '登录程序'))
         self.lineEdit.setPlaceholderText(_translate('MainWindow', '请输入帐号'))
         self.lineEdit_2.setPlaceholderText(_translate('MainWindow', '请输入密码'))
-        self.label.setText(_translate('MainWindow', '帐号'))
-        self.label_2.setText(_translate('MainWindow', '密码'))
-        self.pushButton.setText(_translate('MainWindow', '登陆'))
+        # self.label.setText(_translate('MainWindow', '帐号'))
+        # self.label_2.setText(_translate('MainWindow', '密码'))
+        self.pushButton.setText(_translate('MainWindow', '登  录'))
         self.pushButton_2.setText(_translate('MainWindow', '注册'))
 
     def login(self):
@@ -135,6 +147,7 @@ if __name__ == '__main__':
     import sys
     app = QtWidgets.QApplication(sys.argv)
     MainWindow = QtWidgets.QMainWindow()
+
     ui = Ui_MainWindow()
     # ui_chatroom = chatroom_mainWindow()
     ui_register = register_MainWindow()

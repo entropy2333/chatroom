@@ -17,43 +17,55 @@ class register_MainWindow(QtWidgets.QMainWindow):
         MainWindow.setObjectName("MainWindow")
         MainWindow.resize(386, 127)
         MainWindow.setWindowIcon(QIcon('logo.png'))
-        # MainWindow.setStyleSheet("background-image:url(Background.jpg)")
+        MainWindow.setStyleSheet('#MainWindow{border-image:url(register.jpg)}')
 
         self.centralWidget = QtWidgets.QWidget(MainWindow)
         self.centralWidget.setObjectName("centralWidget")
 
         self.lineEdit = QtWidgets.QLineEdit(self.centralWidget)
-        self.lineEdit.setGeometry(QtCore.QRect(100, 20, 100, 20))
+        self.lineEdit.setGeometry(QtCore.QRect(70, 20, 150, 30))
         self.lineEdit.setText("")
         self.lineEdit.setObjectName("lineEdit")
 
         self.lineEdit_2 = QtWidgets.QLineEdit(self.centralWidget)
-        self.lineEdit_2.setGeometry(QtCore.QRect(100, 50, 100, 20))
+        self.lineEdit_2.setGeometry(QtCore.QRect(70, 50, 150, 30))
         self.lineEdit_2.setText("")
         self.lineEdit_2.setEchoMode(QtWidgets.QLineEdit.Password)
         self.lineEdit_2.setObjectName("lineEdit_2")
 
         self.lineEdit_3 = QtWidgets.QLineEdit(self.centralWidget)
-        self.lineEdit_3.setGeometry(QtCore.QRect(100, 80, 100, 20))
+        self.lineEdit_3.setGeometry(QtCore.QRect(70, 80, 150, 30))
         self.lineEdit_3.setText("")
         self.lineEdit_3.setObjectName("lineEdit_3")
 
+        self.lineEdit.setStyleSheet('font-size:18px;font-family:微软雅黑;'+
+                    'border-width:1px;border-style:solid;border-color:#d1d1d1;border-radius:3px;')
+        self.lineEdit_2.setStyleSheet('font-size:18px;font-family:微软雅黑;'+
+                    'border-width:1px;border-style:solid;border-color:#d1d1d1;border-radius:3px;')
+        self.lineEdit_3.setStyleSheet('font-size:18px;font-family:微软雅黑;'+
+                    'border-width:1px;border-style:solid;border-color:#d1d1d1;border-radius:3px;')
+
         self.label = QtWidgets.QLabel(self.centralWidget)
-        self.label.setGeometry(QtCore.QRect(55, 20, 30, 20))
+        self.label.setGeometry(QtCore.QRect(30, 25, 40, 20))
         self.label.setTextFormat(QtCore.Qt.AutoText)
         self.label.setObjectName("label")
 
         self.label_2 = QtWidgets.QLabel(self.centralWidget)
-        self.label_2.setGeometry(QtCore.QRect(55, 50, 30, 20))
+        self.label_2.setGeometry(QtCore.QRect(30, 55, 40, 20))
         self.label_2.setObjectName("label_2")
 
         self.label_3 = QtWidgets.QLabel(self.centralWidget)
-        self.label_3.setGeometry(QtCore.QRect(55, 80, 30, 20))
+        self.label_3.setGeometry(QtCore.QRect(30, 85, 40, 20))
         self.label_3.setObjectName("label_3")
+
+        self.label.setStyleSheet('font-size:18px;font-family:微软雅黑;')
+        self.label_2.setStyleSheet('font-size:18px;font-family:微软雅黑;')
+        self.label_3.setStyleSheet('font-size:18px;font-family:微软雅黑;')
 
         self.pushButton = QtWidgets.QPushButton(self.centralWidget)
         self.pushButton.setGeometry(QtCore.QRect(250, 50, 75, 23))
         self.pushButton.setObjectName("pushButton")
+        self.pushButton.setStyleSheet('font-size:18px;font-family:等线;color:#ecf8ff;background:#00a3ff;border-radius:5px')
         # self.pushButton_2 = QtWidgets.QPushButton(self.centralWidget)
         # self.pushButton_2.setGeometry(QtCore.QRect(250, 60, 75, 23))
         # self.pushButton_2.setObjectName("pushButton_2")

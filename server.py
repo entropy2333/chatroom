@@ -342,8 +342,9 @@ class Server():
             client_socket.close()
         except:
             print('Connnetion with {} lost!'.format(client_socket.getpeername()))
-            # self.__client_sockets.pop(list(self.__client_sockets.keys())[list(self.__client_sockets.values()).index(client_socket)])
+            self.__client_sockets.pop(list(self.__client_sockets.keys())[list(self.__client_sockets.values()).index(client_socket)])
             client_socket.close()
+            pass # To be modified
     
     def run(self):
         '''
