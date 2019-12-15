@@ -116,6 +116,9 @@ class chatroom_mainWindow(QtWidgets.QMainWindow):
         self.textEdit.setPlaceholderText(_translate("MainWindow", "请输入消息"))
     
     def send_msg(self):
+        '''
+        发送消息
+        '''
         index = self.stackedwidget.currentIndex()
         dst_nickname = self.list.item(index).text()
         content = self.textEdit.toPlainText()
@@ -129,8 +132,9 @@ class chatroom_mainWindow(QtWidgets.QMainWindow):
             cursor = log.textCursor()
             cursor.movePosition(QtGui.QTextCursor.End)
             log.setTextCursor(cursor)
-            log.insertPlainText('\n' + self.user_info[2] + '  ' + time + ':')
-            log.insertPlainText('\n\t' + content)
+            log.insertPlainText('\n' + self.user_info[2] + '  ' + time)
+            log.insertPlainText('\n  ' + content)
+            # 发给自己，直接打印
             if dst_nickname == self.user_info[2]:
                 return 
             req = {
@@ -147,6 +151,15 @@ class chatroom_mainWindow(QtWidgets.QMainWindow):
             #     QMessageBox.information(self, "error", "发送失败")
 
     def scaled_img(self, img_path):
+        '''
+        将图片按一定比例缩放
+        
+        Arguments:
+            img_path {str} -- 图片路径
+        
+        Returns:
+            QTextImageFormat -- 图片
+        '''
         img = QImageReader(img_path).read()
         image = QTextImageFormat()
         image.setName(img_path)
@@ -163,10 +176,14 @@ class chatroom_mainWindow(QtWidgets.QMainWindow):
         return image
 
     def send_img(self):
+        '''
+        发送图片并显示到聊天界面
+        '''
         index = self.stackedwidget.currentIndex()
         dst_nickname = self.list.item(index).text()
         img_path = QFileDialog().getOpenFileName(self, 'Open File', './') # type: tuple
         img_path = img_path[0] # type: str
+        # 未选定图片，路径为空
         if not img_path:
             return 
         img_name = img_path.split('/')[-1] # type: str
@@ -179,13 +196,14 @@ class chatroom_mainWindow(QtWidgets.QMainWindow):
         cursor = log.textCursor()
         cursor.movePosition(QtGui.QTextCursor.End)
         log.setTextCursor(cursor)
-        log.insertPlainText('\n' + self.user_info[2] + '  ' + time + ':' + '\n  ')
+        log.insertPlainText('\n' + self.user_info[2] + '  ' + time + '\n  ')
         cursor.insertImage(img)
+        # 发送给自己，直接打印
         if dst_nickname == self.user_info[2]:
             return
         with open (img_path, 'rb') as f:
             content = f.read() # type: bytes
-            img_str = base64.encodebytes(content).decode('utf-8')
+            img_str = base64.encodebytes(content).decode('utf-8') # type: str
         req = {
             'op': 'send_img',
             'args': {
@@ -210,6 +228,9 @@ class chatroom_mainWindow(QtWidgets.QMainWindow):
         #         self.list.item(user.index()).setBackround(QColor('green'))
 
     def recv_msg(self):
+        '''
+        接收消息并打印
+        '''
         while True:
             try:
                 recv_content = recv_func(self.client_socket)
@@ -228,7 +249,7 @@ class chatroom_mainWindow(QtWidgets.QMainWindow):
                     cursor = log.textCursor()
                     cursor.movePosition(QtGui.QTextCursor.End)
                     log.setTextCursor(cursor)
-                    log.insertPlainText('\n' + src_nickname + '  ' + time +':')
+                    log.insertPlainText('\n' + src_nickname + '  ' + time)
                     log.insertPlainText('\n  ' + content)
 
                 elif recv_content['op'] == 'send_img':
@@ -255,7 +276,7 @@ class chatroom_mainWindow(QtWidgets.QMainWindow):
                     cursor = log.textCursor()
                     cursor.movePosition(QtGui.QTextCursor.End)
                     log.setTextCursor(cursor)
-                    log.insertPlainText('\n' + src_nickname + '  ' + time + ':' + '\n')
+                    log.insertPlainText('\n' + src_nickname + '  ' + time + '\n')
                     cursor.insertImage(img)
 
                 elif recv_content['op'] == 'new_user':

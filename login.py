@@ -149,7 +149,6 @@ if __name__ == '__main__':
     import sys
     app = QtWidgets.QApplication(sys.argv)
     MainWindow = QtWidgets.QMainWindow()
-
     ui = Ui_MainWindow()
     # ui_chatroom = chatroom_mainWindow()
     ui_register = register_MainWindow()

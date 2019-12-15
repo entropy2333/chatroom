@@ -10,19 +10,14 @@ from utils import *
 class Server():
     
     def __init__(self):
-        # self.__socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        # self.__socket = None
         self.__socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.__socket.bind(('', 8888))
         self.__socket.listen(8)
         self.__client_sockets = dict()
         self.__db_file = os.path.join(os.path.dirname(__file__), 'test.db')
-        # self.con = threading.Condition()
         self.__msg_queue = queue.Queue()
         self.__lock = threading.Lock()
         self.init_db()
-        # self.__connections = list()
-        # self.__nicknames = list()
              
     def init_db(self):
         '''
