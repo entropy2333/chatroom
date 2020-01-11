@@ -20,25 +20,20 @@ class Ui_MainWindow(QtWidgets.QMainWindow):
 
     def setupUi(self, MainWindow):
         MainWindow.setObjectName('MainWindow')
-        # MainWindow.resize(386, 127)
         # 尺寸与Background.jpg相关
         MainWindow.setMaximumSize(540, 380)
         MainWindow.setMinimumSize(540, 380)
-        MainWindow.setWindowIcon(QIcon('logo.png'))
-        MainWindow.setStyleSheet('#MainWindow{border-image:url(bg.jpg)}')
+        MainWindow.setWindowIcon(QIcon('img/logo.png'))
+        MainWindow.setStyleSheet('#MainWindow{border-image:url(img/bg.png)}')
 
         self.centralWidget = QtWidgets.QWidget(MainWindow)
         self.centralWidget.setObjectName('centralWidget')
-        # self.centralWidget.setStyleSheet('background:url(bg.jpg)')
-        # self.setAutoFillBackground(True)
-        # window_pale = QtGui.QPalette() 
-        # window_pale.setBrush(self.backgroundRole(),  QtGui.QBrush(QtGui.QPixmap("bg.jpg"))) 
-        # self.setPalette(window_pale)
 
         self.lineEdit = QtWidgets.QLineEdit(self.centralWidget)
         self.lineEdit.setGeometry(QtCore.QRect(160, 210, 240, 40))
         self.lineEdit.setText('')
         self.lineEdit.setObjectName('lineEdit')
+        # self.lineEdit.setFocus()
         
         self.lineEdit_2 = QtWidgets.QLineEdit(self.centralWidget)
         self.lineEdit_2.setGeometry(QtCore.QRect(160, 250, 240, 40))
@@ -50,19 +45,11 @@ class Ui_MainWindow(QtWidgets.QMainWindow):
                     'border-width:1px;border-style:solid;border-color:#d1d1d1;border-radius:3px;')
         self.lineEdit_2.setStyleSheet('font-size:18px;font-family:微软雅黑;'+
                     'border-width:1px;border-style:solid;border-color:#d1d1d1;border-radius:3px;')
-
-        # self.label = QtWidgets.QLabel(self.centralWidget)
-        # self.label.setGeometry(QtCore.QRect(120, 210, 30, 40))
-        # self.label.setTextFormat(QtCore.Qt.AutoText)
-        # self.label.setObjectName('label')
-
-        # self.label_2 = QtWidgets.QLabel(self.centralWidget)
-        # self.label_2.setGeometry(QtCore.QRect(120, 250, 30, 40))
-        # self.label_2.setObjectName('label_2')
         
         self.pushButton = QtWidgets.QPushButton(self.centralWidget)
         self.pushButton.setGeometry(QtCore.QRect(160, 310, 240, 40))
         self.pushButton.setObjectName('pushButton')
+        self.pushButton.setDefault(True)
         self.pushButton.setStyleSheet('font-size:19px;font-family:等线;color:#ecf8ff;background:#00a3ff;border-radius:5px')
 
         self.pushButton_2 = QtWidgets.QPushButton(self.centralWidget)
@@ -82,8 +69,6 @@ class Ui_MainWindow(QtWidgets.QMainWindow):
         MainWindow.setWindowTitle(_translate('MainWindow', '登录程序'))
         self.lineEdit.setPlaceholderText(_translate('MainWindow', '请输入帐号'))
         self.lineEdit_2.setPlaceholderText(_translate('MainWindow', '请输入密码'))
-        # self.label.setText(_translate('MainWindow', '帐号'))
-        # self.label_2.setText(_translate('MainWindow', '密码'))
         self.pushButton.setText(_translate('MainWindow', '登  录'))
         self.pushButton_2.setText(_translate('MainWindow', '注册'))
     
@@ -115,6 +100,7 @@ class Ui_MainWindow(QtWidgets.QMainWindow):
             # self.client_socket.settimeout(0.2)
             send_func(self.client_socket, req)
             recv_content = recv_func(self.client_socket)
+
             if recv_content['op'] == 'login':
                 if recv_content['args']['check_flag']:
                     # login success
@@ -132,7 +118,7 @@ class Ui_MainWindow(QtWidgets.QMainWindow):
                     self.client_socket.close()
                     QMessageBox.information(self, 'info', error_info)
         except Exception as e:
-            QMessageBox.information(self, 'info', 'Failed to connect server!')
+            QMessageBox.information(self, 'info', '连接服务器失败')
             self.client_socket.close()
             # self.lineEdit.setFocus()
     
@@ -140,7 +126,6 @@ class Ui_MainWindow(QtWidgets.QMainWindow):
         '''
         注册
         '''
-        
         ui_register.setWindowModality(Qt.ApplicationModal)
         ui_register.show()
         # MainWindow.close()

@@ -35,7 +35,7 @@ def send_func(client_socket, req):
     
     Arguments:
         client_socket {socket} -- 客户端套接字
-        req {dict} -- [description]
+        req {dict} -- 发送数据
     '''
     req = json.dumps(req).encode()
     len_req = str(len(req)).ljust(15).encode()

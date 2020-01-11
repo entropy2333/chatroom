@@ -17,6 +17,7 @@ class Server():
         self.__db_file = os.path.join(os.path.dirname(__file__), 'test.db')
         self.__msg_queue = queue.Queue()
         self.__lock = threading.Lock()
+        self.__msg_cache = []
         self.init_db()
              
     def init_db(self):
@@ -28,10 +29,12 @@ class Server():
             os.remove(self.__db_file)    
         conn = sqlite3.connect(self.__db_file)
         cur = conn.cursor()
-        cur.execute(r'create table user(account varchar(20) primary key, passwd varchar(20), nickname varchar(20), status varchar(10))')
+        cur.execute(r'create table user(account varchar(20) primary key, passwd varchar(20), nickname varchar(20))')
         # 插入记录:
-        cur.execute(r"insert into user values ('admin', '123456', 'Jack', 'offline')")
-        cur.execute(r"insert into user values ('admin2', '123456', 'Lily', 'offline')")
+        cur.execute(r"insert into user values ('admin', '123456', 'Jack')")
+        cur.execute(r"insert into user values ('admin2', '123456', 'Lily')")
+        cur.execute(r"insert into user values ('admin3', '123456', 'Tom')")
+        cur.execute(r"insert into user values ('admin4', '123456', 'Mark')")
         cur.close()
         conn.commit()
         conn.close()        
@@ -56,7 +59,8 @@ class Server():
             conn = sqlite3.connect(self.__db_file)
             cur = conn.cursor()
             # 插入记录:
-            cur.execute(r"insert into user values (%s, %s, %s, 'offline')' %(account, passwd, nickname)")
+            s = r"insert into user values ('{}', '{}', '{}')".format(account, passwd, nickname)
+            cur.execute(s)
             cur.close()
             conn.commit()
             conn.close()
@@ -178,7 +182,7 @@ class Server():
 
     def send_msg(self):
         '''
-        从队列中获取消息并发送
+        从队列中获取消息并处理
         '''
         while True:
             if not self.__msg_queue.empty():
@@ -246,6 +250,7 @@ class Server():
                     account = recv_content['args']['account']
                     passwd = recv_content['args']['passwd']
                     nickname = recv_content['args']['nickname']
+                    time = recv_content['args']['time']
                     if self.add_user(account, passwd, nickname):
                         print('{} Add new user successfully! account: {} nickname: {}'.format(time, account, nickname))
                         resp = {
@@ -268,45 +273,41 @@ class Server():
                         }
                         send_func(client_socket, resp)
                 
-                # 客户端发起私聊请求
+                # 客户端发送消息
                 elif recv_content['op'] == 'send_msg':
                     src_info = recv_content['args']['src_info']
                     dst_nickname = recv_content['args']['dst_nickname']
                     content = recv_content['args']['content']
                     # src = self.get_user_account(src_nickname)
-                    dst_info = self.get_user_account(dst_nickname)
                     resp = {
                             'op': 'send_msg',
                             'args': {
                                 'src_nickname': src_info[2],
-                                'dst_nickname': dst_info[2],
+                                'dst_nickname': dst_nickname,
                                 'content': content,
                                 'time': time_func()
                             }
                         }
-                    send_func(self.__client_sockets[dst_info], resp)
-                    print('{} sender: {}, receiver: {}, content: {}'.format(time, src_info[2], dst_info[2], content))
+                    if dst_nickname == 'Group':
+                        for socket in list(self.__client_sockets.values()):
+                            send_func(socket, resp)
+                    else:
+                        dst_info = self.get_user_account(dst_nickname)
+                        if not self.__client_sockets.get(dst_info):
+                            self.__msg_cache.append((recv_content, client_socket))
+                        else:
+                            send_func(self.__client_sockets[dst_info], resp)
+                    print('{} sender: {}, receiver: {}, content: {}'.format(time, src_info[2], dst_nickname, content))
                 
-                # 客户端发起私聊请求
+                # 客户端发送图片
                 elif recv_content['op'] == 'send_img':
-                    src_info = recv_content['args']['src_info']
-                    dst_nickname = recv_content['args']['dst_nickname']
-                    img_name = recv_content['args']['img_name']
-                    img_str = recv_content['args']['img_str']
-                    # src = self.get_user_account(src_nickname)
-                    dst_info = self.get_user_account(dst_nickname)
-                    resp = {
-                            'op': 'send_img',
-                            'args': {
-                                'src_nickname': src_info[2],
-                                'dst_nickname': dst_info[2],
-                                'img_name': img_name,
-                                'img_str': img_str,
-                                'time': time_func()
-                            }
-                        }
-                    send_func(self.__client_sockets[dst_info], resp)
-                    print('{} sender: {}, receiver: {}, img: {}'.format(time, src_info[2], dst_info[2], content))
+                    send_img_thread = threading.Thread(target=self.send_img, args=(recv_content, ))
+                    send_img_thread.start()
+
+                # 客户端发送文件
+                elif recv_content['op'] == 'send_file':
+                    send_file_thread = threading.Thread(target=self.send_file, args=(recv_content, ))
+                    send_file_thread.start()
 
                 # 新用户加入，刷新在线用户
                 elif recv_content['op'] == 'refresh':
@@ -320,6 +321,56 @@ class Server():
                         }
                         send_func(client_socket, resp)
     
+    def send_img(self, recv_content):
+        src_info = recv_content['args']['src_info']
+        dst_nickname = recv_content['args']['dst_nickname']
+        img_name = recv_content['args']['img_name']
+        img_str = recv_content['args']['img_str']
+        time = recv_content['args']['time']
+        resp = {
+                'op': 'send_img',
+                'args': {
+                    'src_nickname': src_info[2],
+                    'dst_nickname': dst_nickname,
+                    'img_name': img_name,
+                    'img_str': img_str,
+                    'time': time_func()
+                }
+            }
+        if dst_nickname == 'Group':
+            for socket in list(self.__client_sockets.values()):
+                send_func(socket, resp)
+        else:
+            dst_info = self.get_user_account(dst_nickname)
+            if self.__client_sockets.get(dst_info):
+                send_func(self.__client_sockets[dst_info], resp)
+        print('{} sender: {}, receiver: {}, img: {}'.format(time, src_info[2], dst_nickname, img_name))
+    
+    def send_file(self, recv_content):
+        src_info = recv_content['args']['src_info']
+        dst_nickname = recv_content['args']['dst_nickname']
+        file_name = recv_content['args']['file_name']
+        file_str = recv_content['args']['file_str']
+        time = recv_content['args']['time']
+        resp = {
+                'op': 'send_file',
+                'args': {
+                    'src_nickname': src_info[2],
+                    'dst_nickname': dst_nickname,
+                    'file_name': file_name,
+                    'file_str': file_str,
+                    'time': time_func()
+                }
+            }
+        if dst_nickname == 'Group':
+            for socket in list(self.__client_sockets.values()):
+                send_func(socket, resp)
+        else:
+            dst_info = self.get_user_account(dst_nickname)
+            if self.__client_sockets.get(dst_info):
+                send_func(self.__client_sockets[dst_info], resp)
+        print('{} sender: {}, receiver: {}, file: {}'.format(time, src_info[2], dst_nickname, file_name))
+
     def login_thread(self):
         '''
         用户登陆线程，接收新的客户端连接
@@ -328,7 +379,6 @@ class Server():
         while True:
             print('Waiting for connection....')
             client_socket, client_addr = self.__socket.accept()
-            # print 'New connection from : %s' % str(addr)
             recv_content = recv_func(client_socket)
             self.msg_to_queue(recv_content, client_socket)
 
@@ -348,8 +398,30 @@ class Server():
             print('Connnetion with {} lost!'.format(client_socket.getpeername()))
             self.__client_sockets.pop(list(self.__client_sockets.keys())[list(self.__client_sockets.values()).index(client_socket)])
             client_socket.close()
-            pass # To be modified
+            users_online = []
+            for user in self.users_online():
+                users_online.append(user[2])
+            # 新用户登陆成功 则通知所有在线用户
+            resp = {
+                'op': 'refresh',
+                'args': {
+                    'users_online': users_online,
+                    'time': time_func()
+                }
+            }
+            self.msg_to_queue(resp, client_socket)
     
+    def check_thread(self):
+        '''
+        检查是否有消息缓存
+        '''
+        while True:
+            if self.__msg_cache:
+                recv_content, client_socket = self.__msg_cache[0]
+                self.msg_to_queue(recv_content, client_socket)
+                self.__msg_cache.pop(0)
+            time.sleep(10)
+
     def run(self):
         '''
         启动线程
@@ -358,6 +430,8 @@ class Server():
         login_thread.start()
         send_thread = threading.Thread(target=self.send_msg)
         send_thread.start()
+        check_thread = threading.Thread(target=self.check_thread)
+        check_thread.start()
 
 if __name__ == '__main__':
     Server().run()

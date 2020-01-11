@@ -17,8 +17,8 @@ class register_MainWindow(QtWidgets.QMainWindow):
     def setupUi(self, MainWindow):
         MainWindow.setObjectName("MainWindow")
         MainWindow.resize(386, 127)
-        MainWindow.setWindowIcon(QIcon('logo.png'))
-        MainWindow.setStyleSheet('#MainWindow{border-image:url(register.jpg)}')
+        MainWindow.setWindowIcon(QIcon('img/logo.png'))
+        MainWindow.setStyleSheet('#MainWindow{border-image:url(img/register.jpg)}')
 
         self.centralWidget = QtWidgets.QWidget(MainWindow)
         self.centralWidget.setObjectName("centralWidget")
@@ -95,6 +95,7 @@ class register_MainWindow(QtWidgets.QMainWindow):
         account = self.lineEdit.text()
         passwd = self.lineEdit_2.text()
         nickname = self.lineEdit_3.text()
+        time = time_func()
         if not account or not passwd or not nickname:
             QMessageBox.information(self, "info", "请填写信息")
             return 
@@ -105,25 +106,28 @@ class register_MainWindow(QtWidgets.QMainWindow):
             "op": 'register',
             "args": {
                 "account": account,
-                "password": passwd
+                "passwd": passwd,
+                "nickname": nickname,
+                "time": time
             }
         }
-        
-        client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        IP_PORT = ('127.0.0.1', 8888)
-        client_socket.connect(IP_PORT)
-        send_func(client_socket, req)
-        recv_content = recv_func(client_socket)
-        
-        if recv_content['op'] == 'register':
-            if recv_content['args']['check_flag']:
-                QMessageBox.information(self, "info", "注册成功")
-            else:
-                QMessageBox.information(self, "info", "注册失败")
-        else:
-            QMessageBox.information(self, "info", "服务器未响应")
-        
-        client_socket.close()
+        try:
+            client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            IP_PORT = ('127.0.0.1', 8888)
+            client_socket.connect(IP_PORT)
+            send_func(client_socket, req)
+            recv_content = recv_func(client_socket)
+            
+            if recv_content['op'] == 'register':
+                if recv_content['args']['check_flag']:
+                    QMessageBox.information(self, "info", "注册成功")
+                else:
+                    error_info = recv_content['args']['error_info']
+                    QMessageBox.information(self, "info", error_info)
+        except Exception as e:
+            QMessageBox.information(self, "info", "连接服务器失败")
+        finally:
+            client_socket.close()
         
     # def cancel(self):
     #     # MainWindow.show()
