@@ -11,10 +11,17 @@ from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
 from PyQt5.QtCore import *
 
+
+class RefreshSignal(QThread):
+
+    refresh_signal = pyqtSignal(set, set)
+
+    def __init__(self):
+        super().__init__()
+
 class chatroom_mainWindow(QtWidgets.QMainWindow):
 
     def __init__(self, client_socket, user_list, user_info, users_online):
-        # self.logs = {}
         self.client_socket = client_socket
         self.user_list = user_list
         self.user_list.insert(0, 'Group')
@@ -29,6 +36,7 @@ class chatroom_mainWindow(QtWidgets.QMainWindow):
         mainWindow.setWindowModality(QtCore.Qt.WindowModal)
         mainWindow.setMinimumSize(970, 710)
         mainWindow.setMaximumSize(970, 710)
+        mainWindow.setWindowIcon(QIcon('img/logo.png'))
         mainWindow.setStyleSheet('#mainWindow{border-image:url(img/bg2.png)}')
 
         self.centralWidget = QWidget(mainWindow)
@@ -62,6 +70,9 @@ class chatroom_mainWindow(QtWidgets.QMainWindow):
 
         self.list.currentRowChanged.connect(self.switchlog)
         self.list.setStyleSheet('font-size:28px;font-family:微软雅黑;border-width:0px;border-style:solid')
+
+        self.sig = RefreshSignal()
+        self.sig.refresh_signal.connect(self.refresh_user)
 
         self.pushButton = QPushButton(self.centralWidget)
         self.pushButton.setGeometry(860, 670, 80, 30)
@@ -447,7 +458,8 @@ class chatroom_mainWindow(QtWidgets.QMainWindow):
                     users = set(self.user_list)
                     online = set(users_online)
                     offline = users - online
-                    self.refresh_user(online, offline)
+                    # self.refresh_user(online, offline)
+                    self.sig.refresh_signal.emit(online, offline)
                 else:
                     pass
         except Exception as e:

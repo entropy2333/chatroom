@@ -6,6 +6,7 @@ Homework of IS301
 
 - python3
 - pyqt
+- sqlite3
 
 # Get Started
 
